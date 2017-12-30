@@ -1,4 +1,8 @@
-stage ('Paso 1') {
-	echo 'Starting'
-	echo 'Nothing to do!'
+pipeline {
+	stages {
+		stage ('Paso 1') {
+			echo 'Starting'
+			echo 'Nothing to do!'
+		}
+	}
 }
