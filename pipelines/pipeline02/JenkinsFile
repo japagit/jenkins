@@ -13,6 +13,7 @@ pipeline {
                  log.warning 'Nothing to do!'
 				}
                 echo 'Hello World'
+				 sh("mvn clean package")
             }
         }
     }
