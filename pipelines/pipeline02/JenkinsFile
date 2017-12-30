@@ -8,6 +8,7 @@ pipeline {
     stages {
         stage('Example') {
             steps {
+				log.info 'Starting'
                 echo 'Hello World'
             }
         }
