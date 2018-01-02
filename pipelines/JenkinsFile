@@ -1,0 +1,77 @@
+@Library('Steps@LIBJNK/latest/LIBJNK_steps_DESP')
+@Library('Stages@LIBJNK/latest/LIBJNK_stages_DESP')
+@Library('Functions@LIBJNK/latest/LIBJNK_functions_DESP')
+@Library('Utils@LIBJNK/latest/LIBJNK_utils_DESP')
+
+import groovy.json.JsonOutput
+import org.jenkinsci.plugins.credentialsbinding.impl.CredentialNotFoundException
+import logs.LOG
+
+currentBuild.displayName = TAG
+
+def jobBaseName = env.JOB_BASE_NAME.split('_')
+
+def acronimo = jobBaseName[0]
+def subsistema = jobBaseName[1]
+def version = jobBaseName[2]
+
+def configuracion = [
+                'herramientas':[ : ],
+                'datos':[ : ],
+				'reglas':[ : ],
+				'ubicaciones':[ 'carpetas' : ['nombreCarpetas': [ : ]] ],
+                'comandosMaven':[ : ],
+				'parametros':[ : ],
+				'mensajes' : [ 'trazas' : [],
+							   'avisos' : [], 
+							   'error' : []  ],
+				'ejecucion' : [ 'rutas' : ['Ear':[],'Estaticos':[],'Recursos-desa':[],'Recursos-pre':[],'Recursos-pro':[],'Recursos-forma':[],'Jar':[],'InformesMaven':[],'Dependencias':[]] ,
+								'check' : ['particularizaciones':[],'exclusiones':[]]]
+		]
+def entornoSeleccionado = entorno
+def etiquetaSeleccionada = TAG
+LOG Log = null
+
+def nodoEjecucion = 'swarm'
+
+node(nodoEjecucion){
+	
+	deleteDir()
+	
+	try{
+		Log = new LOG(this,configuracion)
+		
+		stage ('Recuperar Configuracion Especifica') {
+			configuracion = recuperarConfiguracionProyecto(configuracion, acronimo, subsistema, version)
+		}
+	
+		configuracion['parametros']['etiqueta'] = etiquetaSeleccionada
+		
+		stage('Descargar proyecto') {
+			configuracion = descargarProyecto(configuracion)
+		}
+						
+		stage('Localizar Artefactos') {
+			configuracion = localizarArtefactos(configuracion)	
+		}		
+		
+		boolean ejecutarSoloCheck = true
+		
+		stage('Generación de informes') {    
+			configuracion = generarInformes(configuracion, entornoSeleccionado, ejecutarSoloCheck)				
+		}
+		
+		if (Log.existenAvisos()) currentBuild.result = "UNSTABLE"
+
+		if (Log.existenErrores()) currentBuild.result = "FAILURE"
+		
+		
+	} catch (Exception e){
+		currentBuild.result = "FAILURE"
+		Log.error(e.toString())
+		Log.printConfiguracion()
+	}
+}
+
+
+ 	
